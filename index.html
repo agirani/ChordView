@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ChordPro Viewer with Transpose (ChordSheetJS)</title>
+		<link rel="manifest" href="manifest.json">
+		<meta name="theme-color" content="#222222">  <style>
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+		<link rel="apple-touch-icon" href="icon-192.png">
+
+    body { font-family: sans-serif; padding: 5x; background: #f9f9f9; }
+    #output {
+		font-family: monospace;
+		margin-top: 5px; 
+		column-gap: 10px;   /* space between columns */	
+	}
+    h1, h2 { margin: 0; font_size: 15px;}
+	.title {
+  		font-size: 15px;       /* Smaller than typical headline */
+  		font-weight: bold;
+  		margin-bottom: 5px;
+  		text-align: center;
+	}
+
+	.subtitle {
+  		font-size: 12px;       /* Smaller subtitle */
+  		font-style: italic;
+  		margin-bottom: 5px;
+  		text-align: center;
+  		color: #555;
+	}
+    .chord-sheet {
+      /* column-count: 3; / * Change to 2, 3 or more for more columns */
+      column-gap: 10px;
+      font-family: Courier New; 
+      color: #333;
+      background-color: #f9f9f9;
+      padding: 5px;
+   	  border-right: 2px solid #ccc; /* light gray divider */
+      border-radius: 8px;
+      margin: auto;
+    }
+	.chord-sheet-table td {
+	   padding: 0;                /* remove inner padding */
+	   margin: 0;                 /* not usually applied to td, but safe */
+	   white-space: nowrap;   	/* prevent line breaks inside cells */
+       text-overflow: ellipsis; /* optional: show "..." if clipped */
+	   overflow: hidden;      /* optional: hide overflow if too long */	}
+    .chord {
+      color: #d32f2f; /* red for chords */
+      font-weight: bold;
+      margin-right: 5px;
+  	  line-height: .5;
+    }
+    .comment {
+      color: #0000ff; /* blue for comments */
+      /* font-weight: bold; */
+      margin-right: 5px;
+  	  line-height: .5;
+    }
+
+    .lyrics {
+      color: #000; /* black for lyrics */
+	  font-weight: bold;
+	  line-height: 1.0;
+    }
+	.paragraph {
+		margin-bottom: 20px; /* Adds space below the div */
+	}
+    .line {
+      margin-bottom: 4px;
+    }
+	.file-input {
+  		font-size: 14px;     /* Controls text size */
+  		width: 500px;        /* Controls overall width */
+  		padding: 6px 10px;   /* Adds space inside the input */
+	}
+	.line:empty {
+  		margin-bottom: 20px; /* Adjust spacing for blank lines */
+	}
+	br {
+  		line-height: 20em; /* Increase spacing between lines */
+	}
+	.blank-line {
+  		height: 40px; /* Adjust this to control spacing */
+	}
+  </style>
+  <!-- Load ChordSheetJS from CDN -->
+  <script src="bundle.js"></script>
+</head>
+<body>
+  <h2>ChordPro Viewer 🎸</h2>
+  
+  <input type="file" id="fileInput" class="file-input" accept=".pro,.cho,.chordpro,.txt,text/plain">
+  <br>
+  <label>Transpose </label>
+  <input type="range" id="transposeSlider" min="-6" max="6" value="0">
+  <span id="transposeValue">0</span>
+  <label>Font size: </label>
+  <input type="range" min="8" max="36" value="12" id="fontSlider">
+  <span id="sizeValue">12</span>
+  <label>Columns: </label>
+  <input type="number" id="columnCount" min="1" max="4" value="1">
+  <div id="output"></div>
+  
+  <script>
+	if ("serviceWorker" in navigator) {
+	  navigator.serviceWorker.register("service-worker.js")
+	    .then(() => console.log("Service Worker registered"));
+	}
+    let chordProText = "";
+
+	const fontslider = document.getElementById("fontSlider");
+	fontSlider.addEventListener("input", e => {
+  		document.getElementById("output").style.fontSize = e.target.value + "px";
+		document.getElementById("sizeValue").textcontent = fontSlider.value;
+	});
+
+	document.getElementById("columnCount").addEventListener("change", function(e) {
+      //function applyColumns() {
+	  const count = parseInt(e.target.value, 10) || 1;
+	  document.getElementById("output").style.columnCount = count;
+	});
+
+	// Hook up the slider
+	const slider = document.getElementById("transposeSlider");
+	const valueDisplay = document.getElementById("transposeValue");
+
+	slider.addEventListener("input", () => {
+  		valueDisplay.textContent = slider.value;
+ 		render();
+	});
+
+    function render() {
+      const delta = slider.value;
+
+      // Parse ChordPro
+      const parser = new ChordSheetJS.ChordProParser();
+      let song = parser.parse(chordProText);
+
+      // Apply transpose directly on the song
+      if (delta !== 0) {
+        song = song.transpose(delta);
+      }
+      // Render with HTMLDivFormatter (chords above lyrics)
+      const formatter = new ChordSheetJS.HtmlTableFormatter();
+      const rendered = formatter.format(song);
+
+      // Output
+      document.getElementById("output").innerHTML = rendered;
+	  resizeOutput();   // 👈 your auto-fit font logic
+	}
+
+    document.getElementById("fileInput").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        chordProText = evt.target.result;
+        render();
+      };
+      reader.readAsText(file);
+    });
+  </script>
+</body>
+</html>
