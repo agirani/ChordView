@@ -2,165 +2,101 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ChordPro Viewer with Transpose (ChordSheetJS)</title>
-		<link rel="manifest" href="manifest.json">
-		<meta name="theme-color" content="#222222">  <style>
-		<meta name="apple-mobile-web-app-capable" content="yes">
-		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-		<link rel="apple-touch-icon" href="icon-192.png">
+  <!-- Ensures proper rendering and touch zooming on mobile -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    body { font-family: sans-serif; padding: 5x; background: #f9f9f9; }
-    #output {
-		font-family: monospace;
-		margin-top: 5px; 
-		column-gap: 10px;   /* space between columns */	
-	}
-    h1, h2 { margin: 0; font_size: 15px;}
-	.title {
-  		font-size: 15px;       /* Smaller than typical headline */
-  		font-weight: bold;
-  		margin-bottom: 5px;
-  		text-align: center;
-	}
+  <title>ChordPro Viewer 🎸</title>
 
-	.subtitle {
-  		font-size: 12px;       /* Smaller subtitle */
-  		font-style: italic;
-  		margin-bottom: 5px;
-  		text-align: center;
-  		color: #555;
-	}
-    .chord-sheet {
-      /* column-count: 3; / * Change to 2, 3 or more for more columns */
-      column-gap: 10px;
-      font-family: Courier New; 
-      color: #333;
-      background-color: #f9f9f9;
-      padding: 5px;
-   	  border-right: 2px solid #ccc; /* light gray divider */
-      border-radius: 8px;
-      margin: auto;
-    }
-	.chord-sheet-table td {
-	   padding: 0;                /* remove inner padding */
-	   margin: 0;                 /* not usually applied to td, but safe */
-	   white-space: nowrap;   	/* prevent line breaks inside cells */
-       text-overflow: ellipsis; /* optional: show "..." if clipped */
-	   overflow: hidden;      /* optional: hide overflow if too long */	}
-    .chord {
-      color: #d32f2f; /* red for chords */
-      font-weight: bold;
-      margin-right: 5px;
-  	  line-height: .5;
-    }
-    .comment {
-      color: #0000ff; /* blue for comments */
-      /* font-weight: bold; */
-      margin-right: 5px;
-  	  line-height: .5;
-    }
+  <!-- Link to your PWA manifest (defines app name, icons, theme colors) -->
+  <link rel="manifest" href="manifest.json">
 
-    .lyrics {
-      color: #000; /* black for lyrics */
-	  font-weight: bold;
-	  line-height: 1.0;
-    }
-	.paragraph {
-		margin-bottom: 20px; /* Adds space below the div */
-	}
-    .line {
-      margin-bottom: 4px;
-    }
-	.file-input {
-  		font-size: 14px;     /* Controls text size */
-  		width: 500px;        /* Controls overall width */
-  		padding: 6px 10px;   /* Adds space inside the input */
-	}
-	.line:empty {
-  		margin-bottom: 20px; /* Adjust spacing for blank lines */
-	}
-	br {
-  		line-height: 20em; /* Increase spacing between lines */
-	}
-	.blank-line {
-  		height: 40px; /* Adjust this to control spacing */
-	}
-  </style>
-  <!-- Load ChordSheetJS from CDN -->
-  <script src="bundle.js"></script>
+  <!-- Theme color for browser UI (used on Android/desktop) -->
+  <meta name="theme-color" content="#222222">
+
+  <!-- iOS specific meta tags to make it installable -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- Optional: link to your CSS file -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>ChordPro Viewer 🎸</h2>
-  
-  <input type="file" id="fileInput" class="file-input" accept=".pro,.cho,.chordpro,.txt,text/plain">
-  <br>
-  <label>Transpose </label>
-  <input type="range" id="transposeSlider" min="-6" max="6" value="0">
-  <span id="transposeValue">0</span>
-  <label>Font size: </label>
-  <input type="range" min="8" max="36" value="12" id="fontSlider">
-  <span id="sizeValue">12</span>
-  <label>Columns: </label>
-  <input type="number" id="columnCount" min="1" max="4" value="1">
+  <h1>ChordPro Viewer 🎸</h1>
+
+  <!-- File input: allows user to pick one or more ChordPro files from Files app -->
+  <input type="file" id="fileInput"
+         accept=".pro,.cho,.chordpro,.txt,text/plain"
+         multiple>
+
+  <!-- Controls for transposing chords up/down -->
+  <label for="transpose">Transpose</label>
+  <input type="number" id="transpose" value="0">
+
+  <!-- Controls for font size -->
+  <label for="fontSize">Font size:</label>
+  <input type="number" id="fontSize" value="12">
+
+  <!-- Controls for number of columns -->
+  <label for="columns">Columns:</label>
+  <input type="number" id="columns" value="1">
+
+  <!-- Container where parsed songs will be rendered -->
   <div id="output"></div>
-  
+
+  <!-- Load ChordSheetJS library (either from CDN or local copy) -->
+  <script src="chordsheet.min.js"></script>
+
   <script>
-	if ("serviceWorker" in navigator) {
-	  navigator.serviceWorker.register("service-worker.js")
-	    .then(() => console.log("Service Worker registered"));
-	}
-    let chordProText = "";
+    // Register service worker for offline/PWA support
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(() => console.log("Service Worker registered"));
+    }
 
-	const fontslider = document.getElementById("fontSlider");
-	fontSlider.addEventListener("input", e => {
-  		document.getElementById("output").style.fontSize = e.target.value + "px";
-		document.getElementById("sizeValue").textcontent = fontSlider.value;
-	});
-
-	document.getElementById("columnCount").addEventListener("change", function(e) {
-      //function applyColumns() {
-	  const count = parseInt(e.target.value, 10) || 1;
-	  document.getElementById("output").style.columnCount = count;
-	});
-
-	// Hook up the slider
-	const slider = document.getElementById("transposeSlider");
-	const valueDisplay = document.getElementById("transposeValue");
-
-	slider.addEventListener("input", () => {
-  		valueDisplay.textContent = slider.value;
- 		render();
-	});
-
-    function render() {
-      const delta = slider.value;
-
-      // Parse ChordPro
-      const parser = new ChordSheetJS.ChordProParser();
-      let song = parser.parse(chordProText);
-
-      // Apply transpose directly on the song
-      if (delta !== 0) {
-        song = song.transpose(delta);
-      }
-      // Render with HTMLDivFormatter (chords above lyrics)
-      const formatter = new ChordSheetJS.HtmlTableFormatter();
-      const rendered = formatter.format(song);
-
-      // Output
-      document.getElementById("output").innerHTML = rendered;
-	  resizeOutput();   // 👈 your auto-fit font logic
-	}
-
+    // Handle file input change
     document.getElementById("fileInput").addEventListener("change", function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        chordProText = evt.target.result;
-        render();
-      };
-      reader.readAsText(file);
+      const files = e.target.files;
+      if (!files.length) return;
+
+      // Clear previous output
+      document.getElementById("output").innerHTML = "";
+
+      // Loop through all selected files
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+
+        reader.onload = function(evt) {
+          const text = evt.target.result;
+
+          // Parse ChordPro text into a song object
+          const parser = new ChordSheetJS.ChordProParser();
+          let song = parser.parse(text);
+
+          // Apply transpose (value from input)
+          const transposeValue = parseInt(document.getElementById("transpose").value, 10);
+          if (transposeValue !== 0) {
+            const transposer = new ChordSheetJS.Transposer(transposeValue);
+            song = transposer.transpose(song);
+          }
+
+          // Format song into HTML table
+          const formatter = new ChordSheetJS.HtmlTableFormatter();
+          const rendered = formatter.format(song);
+
+          // Create a container for this song
+          const container = document.createElement("div");
+          container.classList.add("song");
+          container.style.fontSize = document.getElementById("fontSize").value + "px";
+          container.innerHTML = rendered;
+
+          // Append to output
+          document.getElementById("output").appendChild(container);
+        };
+
+        // Read file as text
+        reader.readAsText(file);
+      });
     });
   </script>
 </body>
