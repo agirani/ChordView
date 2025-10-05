@@ -111,18 +111,21 @@
 	    .then(() => console.log("Service Worker registered"));
 	}
    let chordProText = "";
-	let file = "";
+   let file = "";
+   let colcount = 1;
+	let fontsize = 12;
 
 	const fontslider = document.getElementById("fontSlider");
 	fontSlider.addEventListener("input", e => {
-  		document.getElementById("output").style.fontSize = e.target.value + "px";
-		document.getElementById("sizeValue").textcontent = fontSlider.value;
+		fontsize = fontSlider.value;
+  		document.getElementById("output").style.fontSize = fontsize + "px";
+		document.getElementById("sizeValue").textContent = fontsize;
 	});
 
 	document.getElementById("columnCount").addEventListener("change", function(e) {
       //function applyColumns() {
-	  const count = parseInt(e.target.value, 10) || 1;
-	  document.getElementById("output").style.columnCount = count;
+	  colcount = parseInt(e.target.value, 10) || 1;
+	  document.getElementById("output").style.columnCount = colcount;
 	});
 
 	// Hook up the slider
@@ -136,7 +139,6 @@
 
     function render() {
       const delta = slider.value;
-
       // Parse ChordPro
       const parser = new ChordSheetJS.ChordProParser();
       let song = parser.parse(chordProText);
@@ -177,16 +179,75 @@
 	    <head>
 	      <title>${file.name}</title>
 	      <style>
-	        body { font-family: monospace; padding: 20px; background: #f9f9f9; }
-	        .chord { color: #d32f2f; font-weight: bold; }
-	        .comment { color: #0000ff; }
-	        .lyrics { color: #000; font-weight: bold; }
-	        table { border-collapse: collapse; }
-	        td { padding: 2px 6px; }
+		    body { font-family: sans-serif; padding: 5x; background: #f9f9f9; }
+		    #output {
+				font-family: monospace;
+				margin-top: 5px; 
+				column-gap: 10px;   /* space between columns */	
+			}
+		    h1, h2 { margin: 0; font_size: 15px;}
+			.title {
+		  		font-size: 15px;       /* Smaller than typical headline */
+		  		font-weight: bold;
+		  		margin-bottom: 5px;
+		  		text-align: center;
+			}
+
+			.subtitle {
+		  		font-size: 12px;       /* Smaller subtitle */
+  				font-style: italic;
+  				margin-bottom: 5px;
+  				text-align: center;
+  				color: #555;
+			}
+		    .chord-sheet {
+		      column-count: ${colcount}; / * Change to 2, 3 or more for more columns */
+		      column-gap: 10px;
+		      font-family: Courier New; 
+		      color: #333;
+		      background-color: #f9f9f9;
+		      padding: 5px;
+		   	  border-right: 2px solid #ccc; /* light gray divider */
+		      border-radius: 8px;
+		      margin: auto;
+		    }
+			.chord-sheet-table td {
+			   padding: 0;                /* remove inner padding */
+			   margin: 0;                 /* not usually applied to td, but safe */
+			   white-space: nowrap;   	/* prevent line breaks inside cells */
+		       text-overflow: ellipsis; /* optional: show "..." if clipped */
+			   overflow: hidden;      /* optional: hide overflow if too long */			}
+		    .chord {
+		      color: #d32f2f; /* red for chords */
+		      font-weight: bold;
+		      margin-right: 5px;
+		  	  line-height: .5;
+		    }
+		    .comment {
+		      color: #0000ff; /* blue for comments */
+		      /* font-weight: bold; */
+		      margin-right: 5px;
+		  	  line-height: .5;
+		    }
+
+ 		   .lyrics {
+		      color: #000; /* black for lyrics */
+			  font-weight: bold;
+			  line-height: 1.0;
+		    }
+			.paragraph {
+				margin-bottom: 20px; /* Adds space below the div */
+			}
+		    .line {
+		      margin-bottom: 4px;
+		    }
 	      </style>
 	    </head>
 	    <body>
-	      ${tabrendered}
+		  <div id="output" style="font-size: ${fontsize}px;">
+			${tabrendered}
+		  </div>
+	      
 	    </body>
 	    </html>
 	  `);
